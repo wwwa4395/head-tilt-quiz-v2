@@ -337,18 +337,7 @@
       flex-shrink: 0;
     }
 
-    .hint-arrow {
-      position: absolute; top:50%; transform:translateY(-50%);
-      font-size: clamp(18px,3.2vw,42px); opacity:0.6;
-      pointer-events: none;
-      animation: pulseArrow 1.5s ease-in-out infinite;
-    }
-    .hint-arrow.left  { right:calc(100% + 3px); }
-    .hint-arrow.right { left:calc(100% + 3px);  }
-    @keyframes pulseArrow {
-      0%,100%{opacity:0.38;transform:translateY(-50%) scale(1)}
-      50%    {opacity:0.82;transform:translateY(-50%) scale(1.16)}
-    }
+
 
     #progress-ring-svg {
       position: absolute; inset:-8px;
@@ -647,8 +636,6 @@
 
     <!-- Webcam -->
     <div id="cam-container">
-      <span class="hint-arrow left">👈</span>
-      <span class="hint-arrow right">👉</span>
       <div id="cam-hint">Tilt to choose!</div>
       <svg id="progress-ring-svg" viewBox="0 0 116 116">
         <circle id="progress-ring-bg"   cx="58" cy="58" r="52"/>
@@ -1039,14 +1026,27 @@ function tickConfetti() {
 let currentQ = null;
 
 function genQuestion() {
-  const a = Math.floor(Math.random() * (CONFIG.MAX_ADDEND + 1));
-  const b = Math.floor(Math.random() * (CONFIG.MAX_ADDEND + 1));
-  const correct = a + b;
-  let offset = Math.floor(Math.random() * CONFIG.DISTRACTOR_MAX) + 1;
-  if (Math.random() < 0.5) offset = -offset;
-  let wrong = correct + offset;
-  if (wrong < 0) wrong = correct + Math.abs(offset);
-  if (wrong === correct) wrong = correct + 1;
+  // Generates sum (correct answer) within [0, 100]
+  const correct = Math.floor(Math.random() * (CONFIG.MAX_ADDEND + 1));
+  // Generates a in [0, correct]
+  const a = Math.floor(Math.random() * (correct + 1));
+  const b = correct - a;
+
+  // wrong answer should also be in [0, 100], and not equal to correct
+  let wrong;
+  let attempts = 0;
+  do {
+    let offset = Math.floor(Math.random() * CONFIG.DISTRACTOR_MAX) + 1;
+    if (Math.random() < 0.5) offset = -offset;
+    wrong = correct + offset;
+    attempts++;
+  } while ((wrong < 0 || wrong > CONFIG.MAX_ADDEND || wrong === correct) && attempts < 100);
+
+  // Fallback in case loop fails
+  if (wrong < 0 || wrong > CONFIG.MAX_ADDEND || wrong === correct) {
+    wrong = (correct > 50) ? correct - 5 : correct + 5;
+  }
+
   const correctSide = Math.random() < 0.5 ? 'a' : 'b';
   return {
     a, b, correct, wrong, correctSide,
